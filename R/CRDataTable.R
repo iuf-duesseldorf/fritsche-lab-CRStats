@@ -308,11 +308,12 @@ CRDataTable <- R6::R6Class("CRDataTable",
                              #' @description
                              #' Create a new data belongig to a compound object.
                              #' @param source_file path to source *.csv-file.
+                             #' @param ddata data.table of data, when data of source_file is available direct in that form 
                              #' @param sep seperator for *.csv-file.
                              #' @param compound compound name
                              #' @param general_setting data.frame with general settings
                              #' @return A new `CRDataTable` object.
-                             initialize = function(source_file = NA, sep = ',', compound = NA, general_setting = NA){
+                             initialize = function(source_file = NA, ddata, sep = ',', compound = NA, general_setting = NA){
                                'Create object' %push% self
                                self$output_folder <- 'output'
                                self$key_process <- 0
@@ -327,28 +328,34 @@ CRDataTable <- R6::R6Class("CRDataTable",
                                self$num_ctl_rpl_ok <- FALSE
                                self$cut_off_appl <- FALSE
                                
-                               self$dt <- tryCatch({
-                                 tmp <- fread(source_file, sep = sep)
-                                 
-                                 'Successfully reading file.' %push% self
-                                 
-                                 if(all(c('Experiment_ID', 'Concentration', 'Well') %in% colnames(tmp))){
-                                   tmp
-                                 }
-                                 else {
-                                   'Requiered columns not contained in the file! check the seperator used in the file.' %push% self
-                                   data.table()
-                                 }
-                               }, 
-                               error=function(cond) {
-                                 'Error reading file.' %push% self
-                                 return(data.table())
-                               },
-                               warning=function(cond) {
-                                 cond$message %push% self 
-                                 return(data.table())
+                               if(is.na(source_file)){
+                                 self$dt <- ddata
                                }
-                               )
+                               else{
+                                 self$dt <- tryCatch({
+                                   tmp <- fread(source_file, sep = sep)
+                                   
+                                   'Successfully reading file.' %push% self
+                                   
+                                   if(all(c('Experiment_ID', 'Concentration', 'Well') %in% colnames(tmp))){
+                                     tmp
+                                   }
+                                   else {
+                                     'Requiered columns not contained in the file! check the seperator used in the file.' %push% self
+                                     data.table()
+                                   }
+                                 }, 
+                                 error=function(cond) {
+                                   'Error reading file.' %push% self
+                                   return(data.table())
+                                 },
+                                 warning=function(cond) {
+                                   cond$message %push% self 
+                                   return(data.table())
+                                 }
+                                 )                                 
+                               }
+
                                self$crc_dt <- list()
                                
                                # load general settings
@@ -436,28 +443,30 @@ CRDataTable <- R6::R6Class("CRDataTable",
                              custom_cut_off = function(cutoff_table = NA){
                                if(typeof(cutoff_table) == 'list'){
                                  N = nrow(cutoff_table)
-                                 endpoints <- self$get_endpoints()
-                                 for(i in 1:N){
-                                   coi <- cutoff_table[i, get('Concentration')]
-                                   poi <- cutoff_table[i, get('Parameter of interest')]
-                                   
-                                   if(!(poi %in% endpoints)) next;
-                                   
-                                   cutoff <- as.numeric(cutoff_table[i, get('Cut off')])
-                                   aff_par <- cutoff_table[i, get('Affected parameter')]
-                                   
-                                   averaged <- self$dt[get('Concentration') == coi, lapply( .SD, private$average_method), .SDcols = c(poi), keyby = c('Experiment_ID')]
-                                   experiments <- averaged[, get('Experiment_ID')]
-                                   
-                                   for(j in 1:length(experiments)){
-                                     experiment_id <- experiments[j]
-                                     avg <- averaged[get('Experiment_ID') == experiment_id, get(poi)]
-                                     if( is.na(avg) || avg <= cutoff )
-                                       self$dt[get('Experiment_ID') == experiment_id, (aff_par) := NA]
+                                 if(N > 0){
+                                   endpoints <- self$get_endpoints()
+                                   for(i in 1:N){
+                                     coi <- cutoff_table[i, get('Concentration')]
+                                     poi <- cutoff_table[i, get('Parameter of interest')]
+                                     
+                                     if(!(poi %in% endpoints)) next;
+                                     
+                                     cutoff <- as.numeric(cutoff_table[i, get('Cut off')])
+                                     aff_par <- cutoff_table[i, get('Affected parameter')]
+                                     
+                                     averaged <- self$dt[get('Concentration') == coi, lapply( .SD, private$average_method), .SDcols = c(poi), keyby = c('Experiment_ID')]
+                                     experiments <- averaged[, get('Experiment_ID')]
+                                     
+                                     for(j in 1:length(experiments)){
+                                       experiment_id <- experiments[j]
+                                       avg <- averaged[get('Experiment_ID') == experiment_id, get(poi)]
+                                       if( is.na(avg) || avg <= cutoff )
+                                         self$dt[get('Experiment_ID') == experiment_id, (aff_par) := NA]
+                                     }
                                    }
+                                   self$cut_off_appl <- TRUE
+                                   self$save_dt('CustomCutoff')                                   
                                  }
-                                 self$cut_off_appl <- TRUE
-                                 self$save_dt('CustomCutoff')
                                }
                                'Custom cut-offs applied.' %push% self
                              },
@@ -514,45 +523,47 @@ CRDataTable <- R6::R6Class("CRDataTable",
                                endpoints <- self$get_endpoints()
                                if(typeof(dr_endpoints_table) == 'list'){ # dynamic range normalization
                                  N = nrow(dr_endpoints_table)
-                                 for(i in 1:N){
-                                   dr_endpoint <- dr_endpoints_table[i, get('Endpoint')]
+                                 if(N > 0){
+                                   for(i in 1:N){
+                                     dr_endpoint <- dr_endpoints_table[i, get('Endpoint')]
+                                     
+                                     # skip if dr_endpoint is not avaible
+                                     if(!(dr_endpoint %in% endpoints)) next;
+                                     
+                                     min_ctl <- dr_endpoints_table[i, get('Min control')]
+                                     max_ctl <- dr_endpoints_table[i, get('Max control')]
+                                     
+                                     # calc min_ctl averages for the dr_endpoint and add helper col to self$dt
+                                     averaged <- self$dt[get('Concentration') == min_ctl, lapply( .SD, private$average_method), .SDcols = c(dr_endpoint), keyby = c('Experiment_ID')]
+                                     tmp_min_ctl_col <- paste0('.MinCtl.', dr_endpoint)
+                                     colnames(averaged)[colnames(averaged) %in% c(dr_endpoint)] <- tmp_min_ctl_col
+                                     self$dt <- self$dt[averaged, on = c('Experiment_ID')]
+                                     
+                                     # calc max_ctl averages for the dr_endpoint and add helper col to self$dt
+                                     averaged <- self$dt[get('Concentration') == max_ctl, lapply( .SD, private$average_method), .SDcols = c(dr_endpoint), keyby = c('Experiment_ID')]
+                                     tmp_max_ctl_col <- paste0('.MaxCtl.', dr_endpoint)
+                                     colnames(averaged)[colnames(averaged) %in% c(dr_endpoint)] <- tmp_max_ctl_col
+                                     self$dt <- self$dt[averaged, on = c('Experiment_ID')]
+                                     
+                                     # normalize dr_endpoint
+                                     self$dt[, (dr_endpoint):= (100*(get(tmp_max_ctl_col) - get(dr_endpoint))) / (get(tmp_max_ctl_col) - get(tmp_min_ctl_col))]
+                                     self$dt[, (dr_endpoint) := lapply(.SD, function(x) ifelse(x<0, 0, x)), .SD = dr_endpoint]
+                                     
+                                     # delete helper
+                                     self$dt[, c(tmp_min_ctl_col, tmp_max_ctl_col):= NULL]
+                                     
+                                     # log step
+                                     paste('Dynamic Range Normalization applied for', dr_endpoint, '.', sep = ' ') %push% self
+                                   }
                                    
-                                   # skip if dr_endpoint is not avaible
-                                   if(!(dr_endpoint %in% endpoints)) next;
+                                   dr_endpoints <- dr_endpoints_table[, get('Endpoint')]
+                                   dr_endpoints <- dr_endpoints[ (dr_endpoints %in% endpoints) ]
                                    
-                                   min_ctl <- dr_endpoints_table[i, get('Min control')]
-                                   max_ctl <- dr_endpoints_table[i, get('Max control')]
-                                   
-                                   # calc min_ctl averages for the dr_endpoint and add helper col to self$dt
-                                   averaged <- self$dt[get('Concentration') == min_ctl, lapply( .SD, private$average_method), .SDcols = c(dr_endpoint), keyby = c('Experiment_ID')]
-                                   tmp_min_ctl_col <- paste0('.MinCtl.', dr_endpoint)
-                                   colnames(averaged)[colnames(averaged) %in% c(dr_endpoint)] <- tmp_min_ctl_col
-                                   self$dt <- self$dt[averaged, on = c('Experiment_ID')]
-                                   
-                                   # calc max_ctl averages for the dr_endpoint and add helper col to self$dt
-                                   averaged <- self$dt[get('Concentration') == max_ctl, lapply( .SD, private$average_method), .SDcols = c(dr_endpoint), keyby = c('Experiment_ID')]
-                                   tmp_max_ctl_col <- paste0('.MaxCtl.', dr_endpoint)
-                                   colnames(averaged)[colnames(averaged) %in% c(dr_endpoint)] <- tmp_max_ctl_col
-                                   self$dt <- self$dt[averaged, on = c('Experiment_ID')]
-                                   
-                                   # normalize dr_endpoint
-                                   self$dt[, (dr_endpoint):= (100*(get(tmp_max_ctl_col) - get(dr_endpoint))) / (get(tmp_max_ctl_col) - get(tmp_min_ctl_col))]
-                                   self$dt[, (dr_endpoint) := lapply(.SD, function(x) ifelse(x<0, 0, x)), .SD = dr_endpoint]
-                                   
-                                   # delete helper
-                                   self$dt[, c(tmp_min_ctl_col, tmp_max_ctl_col):= NULL]
+                                   endpoints <- endpoints[! (endpoints %in% dr_endpoints)]
                                    
                                    # log step
-                                   paste('Dynamic Range Normalization applied for', dr_endpoint, '.', sep = ' ') %push% self
+                                   'Dynamic Range Normalization finished.' %push% self 
                                  }
-                                 
-                                 dr_endpoints <- dr_endpoints_table[, get('Endpoint')]
-                                 dr_endpoints <- dr_endpoints[ (dr_endpoints %in% endpoints) ]
-                                 
-                                 endpoints <- endpoints[! (endpoints %in% dr_endpoints)]
-                                 
-                                 # log step
-                                 'Dynamic Range Normalization finished.' %push% self
                                }
                                
                                endpt_conc_table <- data.table('Endpoint' = endpoints, 'Concentration' = self$solvent_control)
@@ -1516,6 +1527,14 @@ CRDataTable <- R6::R6Class("CRDataTable",
                                        classification_row_further[['Overlap-Ratio']] <- (bmc_verwalter[['unspecific']][['lbmc']] - bmc_verwalter[['specific']][['ubmc']]) / (bmc_verwalter[['specific']][['ubmc']] - bmc_verwalter[['specific']][['lbmc']])
                                        
                                      }
+                                     else{
+                                       
+                                       classification_row_further[['BMC unspecific > BMC specific']] <- 'NA'
+                                       
+                                       # Overlap-Ratio
+                                       classification_row_further[['Overlap-Ratio']] <- 'NA'
+                                       
+                                     }
                                      
                                      
                                      
@@ -1613,6 +1632,7 @@ CRDataTable <- R6::R6Class("CRDataTable",
                                result[, ('Classification'):= '']
                                result[, ('Comment'):= '']
                                
+                               # View(result)
                                N <- nrow(result)
                                M <- nrow(classification_rules_table)
                                rule.attrs <- colnames(classification_rules_table)
@@ -1646,7 +1666,7 @@ CRDataTable <- R6::R6Class("CRDataTable",
                                      first_bracket <- substr(cinterval, 1, 1)
                                      last_bracket <- substr(cinterval, nchar(cinterval), nchar(cinterval))
                                      
-                                     cinterval_wo_brackets <- gsub(pattern = "[\\(]|[\\[]|[\\)]|[\\]]", replacement = "", cinterval)
+                                     cinterval_wo_brackets <- gsub(pattern = "\\(|\\[|\\)|\\]", replacement = "", cinterval)
                                      cinterval_vec <- as.numeric(strsplit(cinterval_wo_brackets, ', ')[[1]])
                                      
                                      if(first_bracket == '('){
