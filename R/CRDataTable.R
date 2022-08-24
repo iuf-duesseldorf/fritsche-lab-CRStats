@@ -1660,7 +1660,7 @@ CRDataTable <- R6::R6Class("CRDataTable",
                                    # now check Overlap-Ratio Interval
                                    if((!is.na(crule[, get('Overlap-Ratio Interval')])) && (crule[, get('Overlap-Ratio Interval')] != '')){
                                      
-                                     if(is.nan(result[i, get('Overlap-Ratio')]) || is.na(result[i, get('Overlap-Ratio')])) next;
+                                     if(is.nan(as.numeric(result[i, get('Overlap-Ratio')])) || is.na(as.numeric(result[i, get('Overlap-Ratio')])) ) next;
                                      
                                      cinterval <- crule[, get('Overlap-Ratio Interval')]
                                      first_bracket <- substr(cinterval, 1, 1)
