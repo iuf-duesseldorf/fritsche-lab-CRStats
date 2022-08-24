@@ -987,7 +987,7 @@ CRDataTable <- R6::R6Class("CRDataTable",
                                  new_endpoint_pdf_name <- gsub("/", " ", new_endpoint_pdf_name) # to ensure valid file name of the output pdf
                                  # print(new_endpoint_name)
                                  
-                                 grDevices::pdf(file = file.path(path, paste0(new_endpoint_pdf_name, '.pdf')), 9, 8)  # single pdf
+                                 grDevices::pdf(file = file.path(path, paste0(self$compound, new_endpoint_pdf_name, '.pdf')), 9, 8)  # single pdf
                                  
                                  usedmodel <- ''
                                  best_fits <- curve_fits[[endpoint]]
@@ -1671,12 +1671,12 @@ CRDataTable <- R6::R6Class("CRDataTable",
                                      
                                      if(first_bracket == '('){
                                        
-                                       if(result[i, get('Overlap-Ratio')] <= cinterval_vec[1]) next;
+                                       if(as.numeric(result[i, get('Overlap-Ratio')]) <= cinterval_vec[1]) next;
                                        
                                      }
                                      else if(first_bracket == '['){
                                        
-                                       if(result[i, get('Overlap-Ratio')] < cinterval_vec[1]) next;
+                                       if(as.numeric(result[i, get('Overlap-Ratio')]) < cinterval_vec[1]) next;
                                        
                                      }
                                      else{  # syntax wrong in table
@@ -1689,12 +1689,12 @@ CRDataTable <- R6::R6Class("CRDataTable",
                                      
                                      if(last_bracket == ')'){
                                        
-                                       if(result[i, get('Overlap-Ratio')] >= cinterval_vec[2]) next;
+                                       if(as.numeric(result[i, get('Overlap-Ratio')]) >= cinterval_vec[2]) next;
                                        
                                      }
-                                     else if(first_bracket == ']'){
+                                     else if(last_bracket == ']'){
                                        
-                                       if(result[i, get('Overlap-Ratio')] > cinterval_vec[2]) next;
+                                       if(as.numeric(result[i, get('Overlap-Ratio')]) > cinterval_vec[2]) next;
                                        
                                      }
                                      else{  # syntax wrong in table
