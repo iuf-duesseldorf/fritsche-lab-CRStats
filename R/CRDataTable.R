@@ -49,9 +49,29 @@ CRDataTable <- R6::R6Class("CRDataTable",
                                }
                                
                                self$dt[, (new_col_name_4_relative) := 100*(get(counter_col)/get(denominator_col))]
+                               N <- nrow(self$dt)
+                               for(i in 1:N){
+                                 
+                                 ccounter <- self$dt[i, get(counter_col)]
+                                 cdenominator <- self$dt[i, get(denominator_col)]
+                                 
+                                 if(is.na(ccounter) || is.na(cdenominator)){
+                                   
+                                   self$dt[i, new_col_name_4_relative] <- as.numeric(NA)
+                                   
+                                 }
+                                 else if(cdenominator == 0){
+                                   
+                                   self$dt[i, new_col_name_4_relative] <- 0
+                                   
+                                 }
+                                 
+                               }
+                               
+                               
                                # is.na(self$dt) <- sapply(self$dt, is.infinite)
-                               self$dt[, (new_col_name_4_relative) := lapply(.SD, function(x) ifelse(is.infinite(x), 0, x)), .SD = new_col_name_4_relative] # x/0 case
-                               self$dt[, (new_col_name_4_relative) := lapply(.SD, function(x) ifelse(is.nan(x), 0, x)), .SD = new_col_name_4_relative] # 0/0 case
+                               # self$dt[, (new_col_name_4_relative) := lapply(.SD, function(x) ifelse(is.infinite(x), 0, x)), .SD = new_col_name_4_relative] # x/0 case
+                               # self$dt[, (new_col_name_4_relative) := lapply(.SD, function(x) ifelse(is.nan(x), 0, x)), .SD = new_col_name_4_relative] # 0/0 case
                                
                                if(delete_after) {
                                  self$dt[,(counter_col):=NULL]
@@ -235,7 +255,192 @@ CRDataTable <- R6::R6Class("CRDataTable",
                                
                                
                                result
+                             },
+                             
+                             #' @description
+                             #' Function for Curve-Fitting that relies on the drc-package.
+                             trydrmV = function(d, e, respect_visual_criteria = TRUE){
+                               result <- list('winner' = list('model' = NA, 'drcObject' = NA, 'aic' = NA))
+                               general_model <- tryCatch({
+                                 drm(endpoint ~ dose, data = d, robust = 'mean', fct = L.3())
+                               },
+                               error = function(cond){
+                                 paste('error in initial fitting for', e, sep=' ') %push% self
+                                 print(paste('error in initial fitting for', e, sep=' '))
+                               })
+                               
+                               if(typeof(general_model) != 'list'){
+                                 result[['winner']]$origData <- d
+                                 return(result)
+                               }
+                               
+                               # when initial fit suceeded, find accurate model and fit with that
+                               models <- mselect(general_model, list(LL2.3(), LL2.4(), W1.3(), W1.4(), W2.3(), W2.4(), EXD.3(), EXD.2(), LL2.5(), BC.4(), BC.5()), linreg = F)
+                               
+                               flag <- TRUE
+                               for(i in 1:length(rownames(models))){
+                                 best_model <- rownames(models)[i]
+                                 result[['winner']]$usedmodel <- best_model
+                                 
+                                 best_model <- paste0(best_model, '()')
+                                 result[['winner']]$model <- best_model
+                                 best_model <- eval(parse(text=best_model))
+                                 
+                                 # mselect does not ensure that the optimization performed in the drm function will terminate ! 
+                                 result[['winner']]$drcObject <- try(drm(endpoint ~ dose, data = d, robust = 'mean', fct = best_model))
+                                 if(typeof(result[['winner']]$drcObject) != 'list'){
+                                   next
+                                 }
+                                 
+                                 result[['winner']]$aic <- models[i, 'IC']
+                                 result[['winner']]$origData <- result[['winner']]$drcObject$origData
+                                 xlim_start = min(result[['winner']]$origData[["dose"]])
+                                 xlim_end <- max(result[['winner']]$origData[["dose"]])*self$extrapolation
+                                 
+                                 neue_daten <- exp(seq(log(xlim_start), log(xlim_end), length = self$grid_size))
+                                 neue_daten[1] <- xlim_start
+                                 neue_daten[self$grid_size] <- xlim_end
+                                 neue_daten <- data.frame(
+                                   dose = neue_daten
+                                 )
+                                 
+                                 p <- predict(result[['winner']]$drcObject, newdata =  neue_daten, interval = 'confidence')
+                                 p <- cbind(neue_daten, p)
+                                 colnames(p) <- c('dose', 'best', 'lower', 'upper')
+                                 
+                                 orig_doses <- result[['winner']]$origData[['dose']]
+                                 orig_doses <- sort(unique(orig_doses))[3]
+                                 pd <- as.data.table(p)
+                                 pd <- na.omit(pd[, (c('dose')):= lapply(.SD, function(x) ifelse(x > orig_doses, x, NA)), .SDcols = c('dose')])
+                                 pd <- as.data.frame(pd)
+                                 
+                                 
+                                 # respect visual criteria to find a plausible fit
+                                 if(respect_visual_criteria){
+                                   if( (all(! is.na(p['lower']))) & (all(! is.na(p['upper']))) ){ # criterion 1
+                                     if( all(p['lower'] < p['upper']) ) { # criterion 2
+                                       if( all(pd['lower'] > 0) ){ # criterion 3
+                                         flag <- FALSE
+                                         break
+                                       }
+                                     }
+                                   }
+                                 }
+                                 else{
+                                   flag <- FALSE
+                                   break
+                                 }
+                               }
+                               
+                               # if all possible models do not fulfill visual criteria
+                               if(flag){
+                                 for(i in 1:length(rownames(models))){
+                                   best_model <- rownames(models)[i]
+                                   result[['winner']]$usedmodel <- best_model
+                                   
+                                   best_model <- paste0(best_model, '()')
+                                   result[['winner']]$model <- best_model
+                                   best_model <- eval(parse(text=best_model))
+                                   
+                                   # mselect does not ensure that the optimization performed in the drm function will terminate ! 
+                                   result[['winner']]$drcObject <- try(drm(endpoint ~ dose, data = d, robust = 'mean', fct = best_model))
+                                   if(typeof(result[['winner']]$drcObject) != 'list'){
+                                     next
+                                   }
+                                   
+                                   result[['winner']]$aic <- models[i, 'IC']
+                                   result[['winner']]$origData <- result[['winner']]$drcObject$origData
+                                   
+                                   break
+                                 }
+                                 
+                                 result[['winner']]$model <- 'flagged'
+                               }
+                               
+                               
+                               # worst case - out of loop without any fit from mselect for some reason 
+                               if(typeof(result[['winner']]$drcObject) != 'list'){
+                                 paste('worst case - out of loop without any fit from mselect for', e, sep=' ') %push% self
+                                 print(paste('worst case - out of loop without any fit from mselect for', e, sep=' '))
+                                 result[['winner']]$drcObject <- general_model
+                               }
+                               
+                               
+                               
+                               # linear-model vs result-fit
+                               # if(FALSE){
+                               lin_fit <- lm(data = d, formula = endpoint ~ dose)
+                               lin_frame <- list('model' = 'lm', 'drcObject' = lin_fit, 'aic' = AIC(lin_fit), 'origData' = lin_fit[['model']])
+                               N_dt = result[['winner']]$drcObject$sumList$lenData
+                               
+                               if(AIC(lin_fit) <= result[['winner']]$aic){
+                                 if(!self$no_effect(d, e)){ # linear-model vs one-parameter-model
+                                   result[['winner']]$model <- 'lm'
+                                   result[['winner']]$usedmodel <- 'lin'
+                                   result[['winner']]$drcObject <- lin_fit # actually not an drcObject
+                                   result[['winner']]$aic <- AIC(lin_fit)
+                                   result[['winner']]$origData <- lin_fit[['model']]
+                                 }
+                                 else{
+                                   one_param_fit <- lm(data = d, formula = endpoint ~ 1)
+                                   result[['winner']]$model <- 'no-effect'
+                                   result[['winner']]$usedmodel <- '1-par'
+                                   result[['winner']]$drcObject <- one_param_fit # actually not an drcObject
+                                   result[['winner']]$aic <- AIC(one_param_fit)
+                                   result[['winner']]$origData <- d
+                                 }
+                               }
+                               # }
+                               
+                               # winner durch
+                               result[['all']] <- list()
+                               
+                               models_N <- length(rownames(models)) 
+                               for(i in 1:models_N){
+                                 result[['all']][[i]] <- list('model' = NA, 'usedmodel' = NA, 'drcObject' = NA, 'aic' = NA, 'origData' = d)
+                                 
+                                 best_model <- rownames(models)[i]
+                                 
+                                 result[['all']][[i]]$usedmodel <- best_model
+                                 result[['all']][[i]]$model <- best_model
+                                 
+                                 best_model <- paste0(best_model, '()')
+                                 best_model <- eval(parse(text=best_model))
+                                 
+                                 # mselect does not ensure that the optimization performed in the drm function will terminate ! 
+                                 result[['all']][[i]]$drcObject <- try(drm(endpoint ~ dose, data = d, robust = 'mean', fct = best_model))
+                                 if(typeof(result[['all']][[i]]$drcObject) != 'list'){
+                                   next
+                                 }
+                                 
+                                 result[['all']][[i]]$aic <- models[i, 'IC']
+                                 
+                                 result[['all']][[i]] <- c(result[['all']][[i]], as.list(as.data.frame(models)[i, ]))
+                               }
+                               
+                               
+                               # lm
+                               result[['all']][[models_N + 1]] <- list('model' = 'lm', 'usedmodel' = 'lm', 'drcObject' = lin_fit, 'aic' = AIC(lin_fit), 'origData' = d)
+                               
+                               result[['all']][[models_N + 1]]$IC <- AIC(lin_fit)
+                               result[['all']][[models_N + 1]]$logLik <- as.numeric(logLik(lin_fit))
+                               result[['all']][[models_N + 1]][['Lack of fit']] <- as.numeric(NA)
+                               result[['all']][[models_N + 1]][['Res var']] <- as.numeric(NA)
+                               
+                               
+
+                               # 1-par
+                               one_param_fit <- lm(data = d, formula = endpoint ~ 1)
+                               result[['all']][[models_N + 2]] <- list('model' = 'no-effect', 'usedmodel' = '1-par', 'drcObject' = one_param_fit, 'aic' = AIC(one_param_fit), 'origData' = d)
+                               
+                               result[['all']][[models_N + 2]]$IC <- AIC(one_param_fit)
+                               result[['all']][[models_N + 2]]$logLik <- as.numeric(logLik(one_param_fit))
+                               result[['all']][[models_N + 2]][['Lack of fit']] <- as.numeric(NA)
+                               result[['all']][[models_N + 2]][['Res var']] <- as.numeric(NA)
+                               
+                               result
                              }
+                             
                              
                            ),
                            public = list(
@@ -424,6 +629,7 @@ CRDataTable <- R6::R6Class("CRDataTable",
                                    new_parameter <- quotients[i, get('Resulting parameter')]
                                    private$add_relative_col(counter_col = numerator, denominator_col = denumerator, new_col = new_parameter, delete_after = FALSE)
                                  }
+                                 self$save_dt('AddedQuotients')
                                  'New parameter given by quotients are added.' %push% self
                                }
                              },
@@ -708,7 +914,100 @@ CRDataTable <- R6::R6Class("CRDataTable",
                                res
                              },
                              
+
+                             #' @description
+                             #' Get data / model for endpoint with seperation of data regarding all plate (merged) or single plates (single)
+                             #' @param sth select data or model.
+                             #' @param experiments merged or single option.
+                             #' @param for_endpoint character or list of endpoints. If not restricted, for all endpoints will be printed.
+                             #' @return Named list of the models (list('model' = ..., 'drcObject' = ...)) of the best fit. The names are the plate ids (IUF: Experiment_IDs) for experiments option single, and 'merged' for experiments option merged.                         
+                             to_getV = function(sth = c('data', 'model'), experiments = c('merged'), for_endpoint){
+                               print(paste0("**", for_endpoint, "**"))
+                               experiments <- match.arg(experiments)
+                               sth <- match.arg(sth)
+                               
+                               # prepare data for fitting via drc package
+                               endpoints <- self$get_endpoints()
+                               
+                               # prepare dt_endpoint table for both cases
+                               if(experiments == 'merged'){
+                                 averaged <- self$dt[, lapply(.SD, private$average_method), .SDcols = endpoints, keyby = c('Experiment_ID', 'Concentration')]
+                                 cols <- c('Concentration', for_endpoint)
+                                 dt_endpoint <- averaged[, ..cols]
+                                 experiment_id_col <- data.table('Experiment_ID' = 'merged')
+                                 dt_endpoint <- cbind(experiment_id_col, dt_endpoint)
+                               }
+                               else if(experiments == 'single'){
+                                 cols <- c('Experiment_ID', 'Concentration', for_endpoint)
+                                 dt_endpoint <- self$dt[, ..cols]
+                               }
+                               
+                               # remove rows with non-numeric entries in column 'Concentration'
+                               dt_endpoint[, ('Concentration') := as.numeric(get('Concentration'))]
+                               dt_endpoint <- dt_endpoint[!is.na(get('Concentration'))] # na.omit
+                               
+                               all_experiments <- unique(dt_endpoint[, get('Experiment_ID')])
+                               res <- lapply(all_experiments, function(experiment_id){
+                                 cols <- c('Concentration', for_endpoint)
+                                 dt_endpoint_experiment <- dt_endpoint[get('Experiment_ID') == experiment_id, ..cols]
+                                 
+                                 colnames(dt_endpoint_experiment)[1] <- 'dose'
+                                 colnames(dt_endpoint_experiment)[2] <- 'endpoint'
+                                 
+                                 # if(length(na.omit(dt_endpoint_experiment[, endpoint])) == 0){
+                                 # print("NO data")
+                                 # return(NA)
+                                 # }
+                                 
+                                 if(sth == 'model'){
+                                   result <- private$trydrmV(dt_endpoint_experiment, for_endpoint) # list('model'= , 'drcObject'=)
+                                   
+                                   if(experiment_id == 'merged'){
+                                     averaged <- self$dt[, lapply(.SD, private$average_method), .SDcols = endpoints, keyby = c('Experiment_ID', 'Concentration')]
+                                     cols_tmp <- c('Experiment_ID', 'Concentration', for_endpoint)
+                                     averaged <- averaged[, ..cols_tmp]
+                                     
+                                     # remove rows with non-numeric entries in column 'Concentration'
+                                     averaged[, ('Concentration') := as.numeric(get('Concentration'))]
+                                     averaged <- averaged[!is.na(get('Concentration'))] # na.omit
+                                     
+                                     colnames(averaged)[1] <- 'experiment'
+                                     colnames(averaged)[2] <- 'dose'
+                                     colnames(averaged)[3] <- 'endpoint'
+                                     
+                                     result[["winner"]]$origData <- averaged
+                                     N_models <- length(result[["all"]])
+                                     for(i_model in 1:N_models){
+                                       result[["all"]][[i_model]]$origData <- averaged
+                                     }
+                                   }
+                                   else{
+                                     tmp_dt <- self$dt
+                                     cols_tmp <- c('Experiment_ID', 'Concentration', for_endpoint)
+                                     tmp_dt <- tmp_dt[get('Experiment_ID') == experiment_id, ..cols_tmp]
+                                     
+                                     # remove rows with non-numeric entries in column 'Concentration'
+                                     tmp_dt[, ('Concentration') := as.numeric(get('Concentration'))]
+                                     tmp_dt <- tmp_dt[!is.na(get('Concentration'))] # na.omit
+                                     
+                                     colnames(tmp_dt)[1] <- 'experiment'
+                                     colnames(tmp_dt)[2] <- 'dose'
+                                     colnames(tmp_dt)[3] <- 'endpoint'
+                                     
+                                     result$origData <- tmp_dt
+                                   }
+                                   
+                                   result
+                                 }
+                                 else if(sth == 'data'){
+                                   dt_endpoint_experiment
+                                 }
+                               })
+                               names(res) <- all_experiments
+                               res
+                             },
                              
+                                                          
                              #' @description
                              #' Check if there is no-effect for given endpoint, data regarding given doses.
                              #' Therefore the nested models linear-regression and one-paramter-model are used, and the hypothesis is tested via tha likelihood-ratio test
@@ -1796,6 +2095,17 @@ CRDataTable <- R6::R6Class("CRDataTable",
                                            self$fit_dt(experiments = 'merged', endpoints_table = endpoints_table)
                                            self$plotc(experiments = 'merged', for_endpoint = endpoints_table, bmr = bmr_file)
                                          },
+                                         "fit data renormalized + concentration response curves + compute bmc estimates" = {
+                                           bmr_file <- readxl::read_excel(file.path(task_file), sheet = "BMRs")
+                                           setDT(bmr_file)
+                                           
+                                           endpoints_table <- readxl::read_excel(file.path(task_file), sheet = "Endpoints")
+                                           setDT(endpoints_table)
+                                           
+                                           # self$fit_dt(experiments = 'merged', endpoints_table = endpoints_table, rnrm = 'yes')
+                                           self$fit_dt(experiments = 'merged', endpoints_table = endpoints_table, rnrm = 'yes')
+                                           self$plotc(experiments = 'merged', for_endpoint = endpoints_table, bmr = bmr_file)
+                                         },                                         
                                          "fit data + concentration response curves + compute bmc estimates + classification model" = {
                                            specific_vs_unspecific_table <- readxl::read_excel(file.path(task_file), sheet = "CM")
                                            setDT(specific_vs_unspecific_table)

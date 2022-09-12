@@ -81,6 +81,7 @@ Data belongig to a compound has a source file with a seperator, compound name, d
 \item \href{#method-CRDataTable-control_normalization}{\code{CRDataTable$control_normalization()}}
 \item \href{#method-CRDataTable-renormalize}{\code{CRDataTable$renormalize()}}
 \item \href{#method-CRDataTable-to_get}{\code{CRDataTable$to_get()}}
+\item \href{#method-CRDataTable-to_getV}{\code{CRDataTable$to_getV()}}
 \item \href{#method-CRDataTable-no_effect}{\code{CRDataTable$no_effect()}}
 \item \href{#method-CRDataTable-fit_dt}{\code{CRDataTable$fit_dt()}}
 \item \href{#method-CRDataTable-bmc_calc}{\code{CRDataTable$bmc_calc()}}
@@ -109,10 +110,14 @@ Normalization, Additive or Mulitplicative
 Function for Curve-Fitting that relies on the drc-package.
 
 
+Function for Curve-Fitting that relies on the drc-package.
+
+
 Create a new data belongig to a compound object.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{CRDataTable$new(
   source_file = NA,
+  ddata,
   sep = ",",
   compound = NA,
   general_setting = NA
@@ -123,6 +128,8 @@ Create a new data belongig to a compound object.
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{source_file}}{path to source *.csv-file.}
+
+\item{\code{ddata}}{data.table of data, when data of source_file is available direct in that form}
 
 \item{\code{sep}}{seperator for *.csv-file.}
 
@@ -272,6 +279,34 @@ Get data / model for endpoint with seperation of data regarding all plate (merge
 \if{html}{\out{<div class="r">}}\preformatted{CRDataTable$to_get(
   sth = c("data", "model"),
   experiments = c("merged", "single"),
+  for_endpoint
+)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{sth}}{select data or model.}
+
+\item{\code{experiments}}{merged or single option.}
+
+\item{\code{for_endpoint}}{character or list of endpoints. If not restricted, for all endpoints will be printed.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+Named list of the models (list('model' = ..., 'drcObject' = ...)) of the best fit. The names are the plate ids (IUF: Experiment_IDs) for experiments option single, and 'merged' for experiments option merged.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-CRDataTable-to_getV"></a>}}
+\if{latex}{\out{\hypertarget{method-CRDataTable-to_getV}{}}}
+\subsection{Method \code{to_getV()}}{
+Get data / model for endpoint with seperation of data regarding all plate (merged) or single plates (single)
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{CRDataTable$to_getV(
+  sth = c("data", "model"),
+  experiments = c("merged"),
   for_endpoint
 )}\if{html}{\out{</div>}}
 }
