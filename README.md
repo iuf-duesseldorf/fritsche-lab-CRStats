@@ -8,7 +8,7 @@
 - data.table: Extension of R's data.frame.
 - drc: Analysis of Dose-Response Curves
 - ggplot2: Create Elegant Data Visualisations Using the Grammar of Graphics
-- ggprism: A 'ggplot2' Extension Inspired by 'GraphPad Prism'
+- ggprism: A 'ggplot2' Extension Inspired by 'GraphPad Prism' - will be used soon.
 
 All these packages are well curated and mature; we expect no problems with dependencies.
 Additionally, we suggest the following packages for extra functionality:
