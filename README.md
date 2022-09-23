@@ -13,7 +13,7 @@
 All these packages are well curated and mature; we expect no problems with dependencies.
 Additionally, we suggest the following packages for extra functionality:
 
-- For parallelization: future / future.apply.
+- For parallelization: parallel.
 - For progress bars: progressr.
 - For capturing output, warnings, and exceptions: evaluate or callr.
 
