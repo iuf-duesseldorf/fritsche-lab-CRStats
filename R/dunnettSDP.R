@@ -54,6 +54,10 @@ dunnettSDP <- function(d){
   res <- unique(res, by = 't_i')
   
   sample_statistics <- sample_statistics[res, on = .(t_i)]
+  
+  # mute q-values where N < 3
+  sample_statistics[get('N') < 3, ('q-values'):=NA]
+  
   sample_statistics <- sample_statistics[, c('dose', 'q-values')]
   sample_statistics[, ('p.signif'):=' ']
   
