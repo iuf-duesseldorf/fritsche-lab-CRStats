@@ -43,3 +43,19 @@ IUF - Leibniz Research Institute for Environmental Medicine
 
 **Kristina Bartmann**: Alternative method development for environmental toxicity testing\
 IUF - Leibniz Research Institute for Environmental Medicine
+
+## Installation
+### Alpha version
+``` r
+## You can install CRStats from GitHub
+# install.packages("devtools")
+#
+devtools::install_github("iuf-duesseldorf/wg-fritsche-CRStats")
+```
+### Latest developer editon with experimental features
+``` r
+## You can install CRStats from GitHub
+# install.packages("devtools")
+#
+devtools::install_github("ArifDoenmez/CRStats")
+```
