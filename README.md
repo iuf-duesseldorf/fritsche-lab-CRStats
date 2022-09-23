@@ -50,7 +50,7 @@ IUF - Leibniz Research Institute for Environmental Medicine
 ## You can install CRStats from GitHub
 # install.packages("devtools")
 #
-devtools::install_github("iuf-duesseldorf/wg-fritsche-CRStats")
+devtools::install_github("iuf-duesseldorf/fritsche-lab-CRStats")
 ```
 ### Latest developer editon with experimental features
 ``` r
