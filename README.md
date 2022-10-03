@@ -1,5 +1,7 @@
 # CRStats - Concentration-Response Statistics
 
+A R package for concentration-response analysis automation for in vitro test systems optimized for multi-well plate experiments based on drc.
+
 ### Package Ecosystem
 
 **CRStats** builds upon the following packages not developed by members of the **CRStats** team:
@@ -7,8 +9,6 @@
 - R6: Reference class objects.
 - data.table: Extension of R's data.frame.
 - drc: Analysis of Dose-Response Curves
-- ggplot2: Create Elegant Data Visualisations Using the Grammar of Graphics
-- ggprism: A 'ggplot2' Extension Inspired by 'GraphPad Prism' - will be used soon.
 
 All these packages are well curated and mature; we expect no problems with dependencies.
 Additionally, we suggest the following packages for extra functionality:
@@ -50,7 +50,7 @@ IUF - Leibniz Research Institute for Environmental Medicine
 ## You can install CRStats from GitHub
 # install.packages("devtools")
 #
-devtools::install_github("iuf-duesseldorf/wg-fritsche-CRStats")
+devtools::install_github("iuf-duesseldorf/fritsche-lab-CRStats")
 ```
 ### Latest developer editon with experimental features
 ``` r

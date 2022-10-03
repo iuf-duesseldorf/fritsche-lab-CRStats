@@ -1,6 +1,6 @@
 Package: CRStats
 Title: Concentration-Response Statistics
-Version: 3.0.0
+Version: 3.1.0
 Authors@R: 
     person("Arif", "Dönmez", , "arif.doenmez@iuf-duesseldorf.de", role = c("aut", "cre"),
            comment = c(www = "https://arifdoenmez.github.io/"))

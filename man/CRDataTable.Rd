@@ -81,13 +81,9 @@ Data belongig to a compound has a source file with a seperator, compound name, d
 \item \href{#method-CRDataTable-control_normalization}{\code{CRDataTable$control_normalization()}}
 \item \href{#method-CRDataTable-renormalize}{\code{CRDataTable$renormalize()}}
 \item \href{#method-CRDataTable-to_get}{\code{CRDataTable$to_get()}}
-\item \href{#method-CRDataTable-to_getV}{\code{CRDataTable$to_getV()}}
 \item \href{#method-CRDataTable-no_effect}{\code{CRDataTable$no_effect()}}
 \item \href{#method-CRDataTable-fit_dt}{\code{CRDataTable$fit_dt()}}
 \item \href{#method-CRDataTable-bmc_calc}{\code{CRDataTable$bmc_calc()}}
-\item \href{#method-CRDataTable-plotc}{\code{CRDataTable$plotc()}}
-\item \href{#method-CRDataTable-classification_plot}{\code{CRDataTable$classification_plot()}}
-\item \href{#method-CRDataTable-run}{\code{CRDataTable$run()}}
 \item \href{#method-CRDataTable-clone}{\code{CRDataTable$clone()}}
 }
 }
@@ -105,9 +101,6 @@ A generic helper function to add new column given by quotiens according counter_
 
 
 Normalization, Additive or Mulitplicative
-
-
-Function for Curve-Fitting that relies on the drc-package.
 
 
 Function for Curve-Fitting that relies on the drc-package.
@@ -299,34 +292,6 @@ Named list of the models (list('model' = ..., 'drcObject' = ...)) of the best fi
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-CRDataTable-to_getV"></a>}}
-\if{latex}{\out{\hypertarget{method-CRDataTable-to_getV}{}}}
-\subsection{Method \code{to_getV()}}{
-Get data / model for endpoint with seperation of data regarding all plate (merged) or single plates (single)
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{CRDataTable$to_getV(
-  sth = c("data", "model"),
-  experiments = c("merged"),
-  for_endpoint
-)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{sth}}{select data or model.}
-
-\item{\code{experiments}}{merged or single option.}
-
-\item{\code{for_endpoint}}{character or list of endpoints. If not restricted, for all endpoints will be printed.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-Named list of the models (list('model' = ..., 'drcObject' = ...)) of the best fit. The names are the plate ids (IUF: Experiment_IDs) for experiments option single, and 'merged' for experiments option merged.
-}
-}
-\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-CRDataTable-no_effect"></a>}}
 \if{latex}{\out{\hypertarget{method-CRDataTable-no_effect}{}}}
 \subsection{Method \code{no_effect()}}{
@@ -402,87 +367,6 @@ BMC calculation based on confidence bands (confidence interval projection) of th
 }
 \subsection{Returns}{
 Plot of the data regarding to the endpoints (and experiments) with the benchmark-response and benchmark-dose.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-CRDataTable-plotc"></a>}}
-\if{latex}{\out{\hypertarget{method-CRDataTable-plotc}{}}}
-\subsection{Method \code{plotc()}}{
-Print curves of the endpoints.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{CRDataTable$plotc(
-  experiments = c("merged", "single"),
-  for_endpoint = NULL,
-  bmr = NA
-)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{experiments}}{merged or single option.}
-
-\item{\code{for_endpoint}}{character or list of endpoints. If not restricted, for all endpoints will be printed.}
-
-\item{\code{bmr}}{double or list of double with the benchmark-response}
-
-\item{\code{normal}}{TRUE (default) or FALSE for renormalisation of the data regarding the smallest dose.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-Plot of the data regarding to the endpoints (and experiments) with the benchmark-response and benchmark-dose.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-CRDataTable-classification_plot"></a>}}
-\if{latex}{\out{\hypertarget{method-CRDataTable-classification_plot}{}}}
-\subsection{Method \code{classification_plot()}}{
-Print curves of the endpoints.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{CRDataTable$classification_plot(
-  experiments = c("merged"),
-  for_endpoint = NULL,
-  specific_vs_unspecific_table = NA,
-  classification_rules_table = NA
-)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{experiments}}{merged or single option.}
-
-\item{\code{for_endpoint}}{character or list of endpoints. If not restricted, for all endpoints will be printed.}
-
-\item{\code{normal}}{TRUE (default) or FALSE for renormalisation of the data regarding the smallest dose.}
-
-\item{\code{bmr}}{double or list of double with the benchmark-response}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-Plot of the data regarding to the endpoints (and experiments) with the benchmark-response and benchmark-dose.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-CRDataTable-run"></a>}}
-\if{latex}{\out{\hypertarget{method-CRDataTable-run}{}}}
-\subsection{Method \code{run()}}{
-Starts a full run.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{CRDataTable$run(task_file = NA)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{task}}{xlsx file containing the tasks and parameter.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-1
 }
 }
 \if{html}{\out{<hr>}}
