@@ -24,13 +24,16 @@ Additionally, we suggest the following packages for extra functionality:
 **Arif Dönmez**: Alternative method development for environmental toxicity testing\
 IUF - Leibniz Research Institute for Environmental Medicine
 
+supervised by
+
+**Martin Scholze**: College of Health, Medicine and Life Sciences\
+Brunel University London, Uxbridge, UK
+
+
 ### Correspondence
 
 **Ellen Fritsche**: Alternative method development for environmental toxicity testing\
 IUF - Leibniz Research Institute for Environmental Medicine
-
-**Martin Scholze**: College of Health, Medicine and Life Sciences\
-Brunel University London, Uxbridge, UK
 
 **Eike Keßel**: Alternative method development for environmental toxicity testing\
 IUF - Leibniz Research Institute for Environmental Medicine
