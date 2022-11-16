@@ -618,10 +618,18 @@ CRDataTable <- R6::R6Class("CRDataTable",
                                  
                                  drc_model <- best_fit$drcObject
                                  if(best_fit$model %in% c('lm', 'no-effect')){
-                                   lowest_dose_predres <- drc_model[["fitted.values"]][[1]]
+                                   
+                                   tmp_dose <- drc_model[["model"]][["dose"]]
+                                   min_index <- which.min(tmp_dose) # we do not want to require ordered dataset
+                                   lowest_dose_predres <- drc_model[["fitted.values"]][[min_index]]
+                                   
                                  }
                                  else{
-                                   lowest_dose_predres <- drc_model[["predres"]][, 'Predicted values'][[1]]
+                                   
+                                   tmp_dose <- drc_model[["data"]][["dose"]]
+                                   min_index <- which.min(tmp_dose) # we do not want to require ordered dataset
+                                   lowest_dose_predres <- drc_model[["predres"]][, 'Predicted values'][[min_index]]
+                                   
                                  }
                                  
                                  if(experiments == 'single'){

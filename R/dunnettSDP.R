@@ -97,10 +97,20 @@ pvAdjSDDT <- function(teststats, df, corr.matrix){
   }
   
   qval <- rep(NA, k)
-  qval[k] <- 1 - mvtnorm::pmvt(lower = -abs(rep(teststats.ordered[k], k)), upper = abs(rep(teststats.ordered[k], k)), df = df, corr=corr.matrix)
+  qval[k] <- tryCatch({
+    1 - mvtnorm::pmvt(lower = -abs(rep(teststats.ordered[k], k)), upper = abs(rep(teststats.ordered[k], k)), df = df, corr=corr.matrix)
+  }, 
+  error = function(cond){
+    as.numeric(NA)
+  })
   
   for(m in (k-1):1){
-    qval[m] <- 1 - mvtnorm::pmvt(lower = -abs(rep(teststats.ordered[m], m)), upper = abs(rep(teststats.ordered[m], m)), df = df, corr=corr.matrix[1:m, 1:m])
+    qval[m] <- tryCatch({
+      1 - mvtnorm::pmvt(lower = -abs(rep(teststats.ordered[m], m)), upper = abs(rep(teststats.ordered[m], m)), df = df, corr=corr.matrix[1:m, 1:m])
+    },
+    error = function(cond){
+      as.numeric(NA)
+    })
     qval[m] <- max(qval[m+1], qval[m], na.rm = TRUE)
   }
   
