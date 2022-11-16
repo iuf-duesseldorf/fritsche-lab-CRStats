@@ -621,6 +621,9 @@ CRDataTable <- R6::R6Class("CRDataTable",
                                    
                                    tmp_dose <- drc_model[["model"]][["dose"]]
                                    min_index <- which.min(tmp_dose) # we do not want to require ordered dataset
+                                   
+                                   if(best_fit$model == 'no-effect') min_index <- 1;
+                                   
                                    lowest_dose_predres <- drc_model[["fitted.values"]][[min_index]]
                                    
                                  }
